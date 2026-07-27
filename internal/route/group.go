@@ -43,6 +43,35 @@ func (g *RouteGroup) Delete(path string, handler Handler) {
 	g.Handle(http.MethodDelete, path, handler)
 }
 
+func (g *RouteGroup) Patch(path string, handler Handler) {
+	g.Handle(http.MethodPatch, path, handler)
+}
+
+func (g *RouteGroup) Head(path string, handler Handler) {
+	g.Handle(http.MethodHead, path, handler)
+}
+
+func (g *RouteGroup) Options(path string, handler Handler) {
+	g.Handle(http.MethodOptions, path, handler)
+}
+
+// Match registers the same handler for each supplied HTTP method.
+func (g *RouteGroup) Match(methods []string, path string, handler Handler) {
+	for _, method := range uniqueMethods(methods) {
+		g.Handle(method, path, handler)
+	}
+}
+
+// Any registers a handler for all commonly used HTTP methods.
+func (g *RouteGroup) Any(path string, handler Handler) {
+	g.Match(standardMethods, path, handler)
+}
+
+// Redirect registers a grouped GET endpoint that redirects to another URL.
+func (g *RouteGroup) Redirect(path, destination string, status ...int) {
+	g.Get(path, redirectHandler(destination, redirectStatus(status)))
+}
+
 func (g *RouteGroup) Group(prefix string) *RouteGroup {
 	return &RouteGroup{
 		engine:     g.engine,

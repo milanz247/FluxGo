@@ -66,6 +66,35 @@ func (e *Engine) Delete(path string, handler Handler) {
 	e.Handle(http.MethodDelete, path, handler)
 }
 
+func (e *Engine) Patch(path string, handler Handler) {
+	e.Handle(http.MethodPatch, path, handler)
+}
+
+func (e *Engine) Head(path string, handler Handler) {
+	e.Handle(http.MethodHead, path, handler)
+}
+
+func (e *Engine) Options(path string, handler Handler) {
+	e.Handle(http.MethodOptions, path, handler)
+}
+
+// Match registers the same handler for each supplied HTTP method.
+func (e *Engine) Match(methods []string, path string, handler Handler) {
+	for _, method := range uniqueMethods(methods) {
+		e.Handle(method, path, handler)
+	}
+}
+
+// Any registers a handler for all commonly used HTTP methods.
+func (e *Engine) Any(path string, handler Handler) {
+	e.Match(standardMethods, path, handler)
+}
+
+// Redirect registers a GET endpoint that redirects to another URL.
+func (e *Engine) Redirect(path, destination string, status ...int) {
+	e.Get(path, redirectHandler(destination, redirectStatus(status)))
+}
+
 // Group creates a route group that shares a URL prefix.
 func (e *Engine) Group(prefix string) *RouteGroup {
 	return &RouteGroup{
@@ -121,4 +150,47 @@ func cleanPrefix(prefix string) string {
 		return ""
 	}
 	return "/" + strings.Trim(prefix, "/")
+}
+
+var standardMethods = []string{
+	http.MethodGet,
+	http.MethodPost,
+	http.MethodPut,
+	http.MethodPatch,
+	http.MethodDelete,
+	http.MethodHead,
+	http.MethodOptions,
+}
+
+func uniqueMethods(methods []string) []string {
+	result := make([]string, 0, len(methods))
+	seen := make(map[string]struct{}, len(methods))
+
+	for _, method := range methods {
+		method = strings.ToUpper(strings.TrimSpace(method))
+		if method == "" {
+			continue
+		}
+		if _, exists := seen[method]; exists {
+			continue
+		}
+		seen[method] = struct{}{}
+		result = append(result, method)
+	}
+
+	return result
+}
+
+func redirectStatus(status []int) int {
+	if len(status) == 0 {
+		return http.StatusFound
+	}
+	return status[0]
+}
+
+func redirectHandler(destination string, status int) Handler {
+	return func(c *Context) error {
+		http.Redirect(c.Response, c.Request, destination, status)
+		return nil
+	}
 }

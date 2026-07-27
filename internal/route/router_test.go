@@ -116,3 +116,81 @@ func TestErrorBeforeResponseStartedReturns500(t *testing.T) {
 		t.Fatalf("expected status %d, got %d", http.StatusInternalServerError, response.Code)
 	}
 }
+
+func TestAdditionalHTTPMethodHelpers(t *testing.T) {
+	engine := Route.New()
+	handler := func(c *Route.Context) error {
+		return c.OK(map[string]string{"method": c.Request.Method})
+	}
+
+	engine.Patch("/patch", handler)
+	engine.Head("/head", handler)
+	engine.Options("/options", handler)
+
+	tests := []struct {
+		method string
+		path   string
+	}{
+		{method: http.MethodPatch, path: "/patch"},
+		{method: http.MethodHead, path: "/head"},
+		{method: http.MethodOptions, path: "/options"},
+	}
+
+	for _, tt := range tests {
+		response := httptest.NewRecorder()
+		engine.ServeHTTP(response, httptest.NewRequest(tt.method, tt.path, nil))
+		if response.Code != http.StatusOK {
+			t.Fatalf("%s %s returned %d", tt.method, tt.path, response.Code)
+		}
+	}
+}
+
+func TestMatchNormalizesAndDeduplicatesMethods(t *testing.T) {
+	engine := Route.New()
+	engine.Match([]string{"get", " POST ", "GET", ""}, "/matched", func(c *Route.Context) error {
+		return c.View(c.Request.Method)
+	})
+
+	for _, method := range []string{http.MethodGet, http.MethodPost} {
+		response := httptest.NewRecorder()
+		engine.ServeHTTP(response, httptest.NewRequest(method, "/matched", nil))
+		if response.Code != http.StatusOK || response.Body.String() != method {
+			t.Fatalf("unexpected %s response: status=%d body=%q", method, response.Code, response.Body.String())
+		}
+	}
+}
+
+func TestAnyWorksWithRouteGroupMiddleware(t *testing.T) {
+	engine := Route.New()
+	middlewareCalled := false
+	group := engine.Group("/api").Use(func(next Route.Handler) Route.Handler {
+		return func(c *Route.Context) error {
+			middlewareCalled = true
+			return next(c)
+		}
+	})
+	group.Any("/health", func(c *Route.Context) error {
+		return c.View("ok")
+	})
+
+	response := httptest.NewRecorder()
+	engine.ServeHTTP(response, httptest.NewRequest(http.MethodPatch, "/api/health", nil))
+	if response.Code != http.StatusOK || !middlewareCalled {
+		t.Fatalf("expected grouped Any route and middleware to run")
+	}
+}
+
+func TestRedirectHelper(t *testing.T) {
+	engine := Route.New()
+	engine.Redirect("/old", "/new", http.StatusMovedPermanently)
+
+	response := httptest.NewRecorder()
+	engine.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/old", nil))
+
+	if response.Code != http.StatusMovedPermanently {
+		t.Fatalf("expected status %d, got %d", http.StatusMovedPermanently, response.Code)
+	}
+	if location := response.Header().Get("Location"); location != "/new" {
+		t.Fatalf("expected redirect location %q, got %q", "/new", location)
+	}
+}
