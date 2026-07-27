@@ -58,3 +58,28 @@ admin.Patch("/users/{id}", handlers.UpdateUser)
 admin.Match([]string{"GET", "POST"}, "/search", handlers.Search)
 admin.Redirect("/home", "/admin/dashboard")
 ```
+
+## View data
+
+Use `Route.Data` instead of declaring a different map type for every view. Its
+values may contain strings, booleans, numbers, slices, structs, or any other
+template data:
+
+```go
+return c.Render("home", Route.Data{
+	"Title":   "FluxGo",
+	"Heading": "Hello from FluxGo!",
+	"Admin":   true,
+})
+```
+
+Data can also be assembled or merged fluently when that makes conditional view
+data clearer:
+
+```go
+data := Route.Data{}.
+	Set("Title", "Dashboard").
+	Merge(sharedData)
+
+return c.Render("dashboard", data)
+```
