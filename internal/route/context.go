@@ -2,6 +2,7 @@ package route
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -9,6 +10,7 @@ import (
 type Context struct {
 	Response http.ResponseWriter
 	Request  *http.Request
+	renderer Renderer
 }
 
 // JSON writes a JSON response with the provided status code.
@@ -39,6 +41,14 @@ func (c *Context) HTML(status int, content string) error {
 // View writes a successful HTML response.
 func (c *Context) View(content string) error {
 	return c.HTML(http.StatusOK, content)
+}
+
+// Render executes a precompiled view selected for the current request.
+func (c *Context) Render(name string, data any) error {
+	if c.renderer == nil {
+		return fmt.Errorf("route: view renderer is not configured")
+	}
+	return c.renderer.Render(c.Response, c.Request, name, data)
 }
 
 // BindJSON decodes the request body into value.

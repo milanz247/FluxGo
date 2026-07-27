@@ -9,6 +9,11 @@ import (
 
 type Handler func(*Context) error
 
+// Renderer renders a named view for the current request.
+type Renderer interface {
+	Render(http.ResponseWriter, *http.Request, string, any) error
+}
+
 // Middleware wraps a Handler to run logic before or after it.
 type Middleware = middleware.Middleware[Handler]
 
@@ -16,6 +21,12 @@ type Middleware = middleware.Middleware[Handler]
 type Engine struct {
 	mux        *http.ServeMux
 	middleware *middleware.Engine[Handler]
+	renderer   Renderer
+}
+
+// SetRenderer configures the view renderer used by route contexts.
+func (e *Engine) SetRenderer(renderer Renderer) {
+	e.renderer = renderer
 }
 
 func New() *Engine {
@@ -70,7 +81,7 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (e *Engine) wrap(handler Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		rw := &responseWriter{ResponseWriter: w}
-		ctx := &Context{Response: rw, Request: r}
+		ctx := &Context{Response: rw, Request: r, renderer: e.renderer}
 
 		if err := e.middleware.Wrap(handler)(ctx); err != nil {
 			log.Printf("%s %s: %v", r.Method, r.URL.Path, err)

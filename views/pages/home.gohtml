@@ -1,0 +1,16 @@
+{{define "content"}}
+<h1>{{upper .Heading}}</h1>
+<p>Your HTMX-aware template engine is running.</p>
+
+<form
+	hx-post="/check-value"
+	hx-target="#value-result"
+	hx-swap="innerHTML"
+>
+	<label for="value">Enter a value</label>
+	<input id="value" name="value" type="text" required>
+	<button type="submit">Send</button>
+</form>
+
+<div id="value-result" aria-live="polite"></div>
+{{end}}

@@ -4,6 +4,11 @@ import "net/http"
 
 var defaultEngine = New()
 
+// SetRenderer configures the view renderer on the default engine.
+func SetRenderer(renderer Renderer) {
+	defaultEngine.SetRenderer(renderer)
+}
+
 // Get registers a GET route on the default engine.
 func Get(path string, handler Handler) {
 	defaultEngine.Get(path, handler)

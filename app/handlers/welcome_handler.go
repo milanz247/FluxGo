@@ -4,16 +4,16 @@ import Route "fluxgo/internal/route"
 
 // WelcomeHandler handles the application welcome page.
 func WelcomeHandler(c *Route.Context) error {
-	return c.View(`<!doctype html>
-<html lang="en">
-<head>
-	<meta charset="utf-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>FluxGo</title>
-</head>
-<body>
-	<h1>Hello from FluxGo!</h1>
-	<p>Your route engine is running.</p>
-</body>
-</html>`)
+	return c.Render("home", map[string]string{
+		"Title":   "FluxGo",
+		"Heading": "Hello from FluxGo!",
+	})
+}
+
+// CheckValue receives the form value and returns an HTMX fragment.
+func CheckValue(c *Route.Context) error {
+	return c.Render("value-result", map[string]any{
+		"Value":  c.Request.FormValue("value"),
+		"Result": true,
+	})
 }

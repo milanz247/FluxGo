@@ -8,4 +8,5 @@ import (
 // Web registers browser-facing routes.
 func Web() {
 	Route.Get("/", handlers.WelcomeHandler)
+	Route.Post("/check-value", handlers.CheckValue)
 }
