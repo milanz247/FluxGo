@@ -15,6 +15,7 @@ type Context struct {
 	renderer Renderer
 	values   map[string]any
 	session  Session
+	shared   Data
 }
 
 // Session provides request-scoped access to the framework session.
@@ -78,6 +79,16 @@ func (c *Context) View(content string) error {
 func (c *Context) Render(name string, data any) error {
 	if c.renderer == nil {
 		return fmt.Errorf("route: view renderer is not configured")
+	}
+	if values, ok := data.(Data); ok && len(c.shared) > 0 {
+		merged := make(Data, len(c.shared)+len(values))
+		for key, value := range c.shared {
+			merged[key] = value
+		}
+		for key, value := range values {
+			merged[key] = value
+		}
+		data = merged
 	}
 	return c.renderer.Render(c.Response, c.Request, name, data)
 }
@@ -215,6 +226,20 @@ func (c *Context) Session() Session {
 // It is intended for framework middleware.
 func (c *Context) SetSession(session Session) {
 	c.session = session
+}
+
+// Share makes a value available to Route.Data passed to Render.
+func (c *Context) Share(key string, value any) {
+	if c.shared == nil {
+		c.shared = make(Data)
+	}
+	c.shared[key] = value
+}
+
+// Shared retrieves a shared view value.
+func (c *Context) Shared(key string) (any, bool) {
+	value, exists := c.shared[key]
+	return value, exists
 }
 
 // BadRequest writes a standard 400 JSON error response.

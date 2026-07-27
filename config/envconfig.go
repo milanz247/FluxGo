@@ -20,6 +20,8 @@ type EnvConfig struct {
 	SessionCookie   string
 	SessionLifetime time.Duration
 	SessionSecure   bool
+
+	Database DatabaseConfig
 }
 
 // Load reads an optional dotenv file and then applies operating-system
@@ -38,6 +40,22 @@ func Load(path string) (EnvConfig, error) {
 	if err != nil {
 		return EnvConfig{}, err
 	}
+	maxIdleConns, err := integerValue("DB_MAX_IDLE_CONNS", 10, fileValues)
+	if err != nil {
+		return EnvConfig{}, err
+	}
+	maxOpenConns, err := integerValue("DB_MAX_OPEN_CONNS", 100, fileValues)
+	if err != nil {
+		return EnvConfig{}, err
+	}
+	connectionMinutes, err := integerValue("DB_CONN_MAX_LIFETIME_MINUTES", 60, fileValues)
+	if err != nil {
+		return EnvConfig{}, err
+	}
+	autoMigrate, err := booleanValue("DB_AUTO_MIGRATE", true, fileValues)
+	if err != nil {
+		return EnvConfig{}, err
+	}
 
 	return EnvConfig{
 		AppName:    value("APP_NAME", "FluxGo", fileValues),
@@ -48,6 +66,19 @@ func Load(path string) (EnvConfig, error) {
 		SessionCookie:   value("SESSION_COOKIE", "flux_session", fileValues),
 		SessionLifetime: time.Duration(sessionMinutes) * time.Minute,
 		SessionSecure:   sessionSecure,
+
+		Database: DatabaseConfig{
+			Host:            value("DB_HOST", "127.0.0.1", fileValues),
+			Port:            value("DB_PORT", "3306", fileValues),
+			Name:            value("DB_DATABASE", "fluxgo", fileValues),
+			User:            value("DB_USERNAME", "root", fileValues),
+			Password:        value("DB_PASSWORD", "", fileValues),
+			Charset:         value("DB_CHARSET", "utf8mb4", fileValues),
+			MaxIdleConns:    maxIdleConns,
+			MaxOpenConns:    maxOpenConns,
+			ConnMaxLifetime: time.Duration(connectionMinutes) * time.Minute,
+			AutoMigrate:     autoMigrate,
+		},
 	}, nil
 }
 

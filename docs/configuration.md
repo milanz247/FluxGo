@@ -24,6 +24,10 @@ SESSION_SECURE=false
 | `SESSION_LIFETIME_MINUTES` | `120` | Server-side session lifetime |
 | `SESSION_SECURE` | `false` | Restrict the cookie to HTTPS |
 
+Database settings are documented separately in
+[`database.md`](database.md). Keep real database passwords in `.env`; the file
+is ignored by Git.
+
 Values may be unquoted, single-quoted, or double-quoted. Blank lines, comments,
 and the optional `export` prefix are supported:
 

@@ -25,6 +25,7 @@ func TemplateFuncs() template.FuncMap {
 		"slug":        slug,
 		"truncate":    truncate,
 		"queryEscape": queryEscape,
+		"csrfField":   csrfField,
 
 		// Values and conditions
 		"default":  defaultValue,

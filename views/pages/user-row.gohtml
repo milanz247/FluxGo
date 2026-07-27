@@ -1,7 +1,19 @@
 {{define "content"}}
-<tr id="user-{{.ID}}">
-	<td>{{.ID}}</td>
-	<td>{{.Name}}</td>
-	
+<tr id="user-{{.User.ID}}">
+	<td>{{.User.ID}}</td>
+	<td>{{.User.Name}}</td>
+	<td>{{.User.Phone}}</td>
+	<td>
+		<div class="actions">
+			<a href="/users/{{.User.ID}}">View</a>
+			<a href="/users/{{.User.ID}}/edit">Edit</a>
+			<form class="inline" method="post" action="/users/{{.User.ID}}/delete"
+				hx-post="/users/{{.User.ID}}/delete" hx-target="closest tr" hx-swap="outerHTML">
+				{{csrfField .CSRFToken}}
+				<button type="submit">Delete</button>
+			</form>
+		</div>
+	</td>
 </tr>
+<tr id="empty-users" hx-swap-oob="delete"></tr>
 {{end}}

@@ -32,6 +32,9 @@ The underlying request remains available as `c.Request`.
 The globally registered session is available through `c.Session()`. See
 [`sessions.md`](sessions.md) for session configuration and operations.
 
+CSRF middleware shares `CSRFToken` automatically with `Route.Data` used for
+views. See [`csrf.md`](csrf.md) for forms, HTMX, headers, and exclusions.
+
 ## Responses
 
 ```go

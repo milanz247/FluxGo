@@ -31,6 +31,7 @@ remain available.
 | `slug` | `{{slug "Hello, Go!"}}` | `hello-go` |
 | `truncate` | `{{truncate 10 .Description}}` | At most 10 characters |
 | `queryEscape` | `{{queryEscape .Search}}` | URL query-safe text |
+| `csrfField` | `{{csrfField .CSRFToken}}` | Hidden CSRF form input |
 
 Arguments are pipeline-friendly because the value is normally last:
 
