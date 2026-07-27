@@ -45,18 +45,16 @@ database.Migrate(db, &models.User{})
 GORM `AutoMigrate` is convenient during development. For production systems,
 set `DB_AUTO_MIGRATE=false` and use reviewed, versioned migrations.
 
-## Repository
+The current development migration also removes the obsolete `phone` column
+from the earlier CRUD example. This one-time cleanup allows the authentication
+model (`name`, `email`, and `password_hash`) to write to an existing development
+`users` table.
 
-`app/store.UserStore` is backed by `*gorm.DB` and uses the HTTP request context
-for cancellation:
+## MVH database access
 
-```go
-users := store.NewUserStore(db)
-user, err := users.Find(ctx, id)
-```
-
-Handlers depend on the `UserRepository` interface instead of GORM directly,
-keeping HTTP logic testable and allowing another persistence implementation.
+The application intentionally uses a small Model-View-Handler structure. Auth
+handlers receive `*gorm.DB` and use it directly with the HTTP request context;
+there is no repository or service layer in this example.
 
 The DSN enables `parseTime` for `time.Time` model fields and uses `utf8mb4`.
 Passwords are not logged by the application.

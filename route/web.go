@@ -2,18 +2,21 @@ package route
 
 import (
 	"fluxgo/app/handlers"
+	"fluxgo/app/middleware"
 	Route "fluxgo/internal/route"
 )
 
 // Web registers browser-facing routes.
-func Web(users *handlers.UserHandler) {
-	Route.Get("/", handlers.WelcomeHandler)
-	Route.Post("/check-value", handlers.CheckValue)
+func Web(auth *handlers.AuthHandler) {
+	Route.Get("/", auth.Home)
 
-	Route.Get("/users", users.Index)
-	Route.Post("/users", users.Store)
-	Route.Get("/users/{id}", users.Show)
-	Route.Get("/users/{id}/edit", users.Edit)
-	Route.Post("/users/{id}/update", users.Update)
-	Route.Post("/users/{id}/delete", users.Delete)
+	guest := Route.Group("").Use(middleware.Guest)
+	guest.Get("/register", auth.ShowRegister)
+	guest.Post("/register", auth.Register)
+	guest.Get("/login", auth.ShowLogin)
+	guest.Post("/login", auth.Login)
+
+	protected := Route.Group("").Use(middleware.Auth)
+	protected.Get("/dashboard", auth.Dashboard)
+	protected.Post("/logout", auth.Logout)
 }

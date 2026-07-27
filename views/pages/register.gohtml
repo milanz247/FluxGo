@@ -1,0 +1,38 @@
+{{define "content"}}
+<h1>Create your account</h1>
+<p>Enter your details to get started.</p>
+
+{{if .Error}}<p role="alert">{{.Error}}</p>{{end}}
+
+<form method="post" action="/register">
+	{{csrfField .CSRFToken}}
+
+	<p>
+		<label for="name">Name</label>
+		<br>
+		<input id="name" name="name" type="text" value="{{.OldName}}" autocomplete="name" required autofocus>
+	</p>
+
+	<p>
+		<label for="email">Email address</label>
+		<br>
+		<input id="email" name="email" type="email" value="{{.OldEmail}}" autocomplete="email" required>
+	</p>
+
+	<p>
+		<label for="password">Password</label>
+		<br>
+		<input id="password" name="password" type="password" minlength="8" autocomplete="new-password" required>
+	</p>
+
+	<p>
+		<label for="password_confirmation">Confirm password</label>
+		<br>
+		<input id="password_confirmation" name="password_confirmation" type="password" minlength="8" autocomplete="new-password" required>
+	</p>
+
+	<button type="submit">Create account</button>
+</form>
+
+<p>Already registered? <a href="/login">Sign in</a></p>
+{{end}}

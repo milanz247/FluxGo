@@ -1,0 +1,14 @@
+{{define "content"}}
+<h1>Dashboard</h1>
+<p>You are signed in successfully.</p>
+
+<section>
+	<p><strong>Name:</strong> {{.User.Name}}</p>
+	<p><strong>Email:</strong> {{.User.Email}}</p>
+</section>
+
+<form method="post" action="/logout">
+	{{csrfField .CSRFToken}}
+	<button type="submit">Sign out</button>
+</form>
+{{end}}

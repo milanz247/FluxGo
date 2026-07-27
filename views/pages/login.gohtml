@@ -1,0 +1,26 @@
+{{define "content"}}
+<h1>Welcome back</h1>
+<p>Sign in to continue to your dashboard.</p>
+
+{{if .Error}}<p role="alert">{{.Error}}</p>{{end}}
+
+<form method="post" action="/login">
+	{{csrfField .CSRFToken}}
+
+	<p>
+		<label for="email">Email address</label>
+		<br>
+		<input id="email" name="email" type="email" value="{{.OldEmail}}" autocomplete="email" required autofocus>
+	</p>
+
+	<p>
+		<label for="password">Password</label>
+		<br>
+		<input id="password" name="password" type="password" autocomplete="current-password" required>
+	</p>
+
+	<button type="submit">Sign in</button>
+</form>
+
+<p>No account yet? <a href="/register">Create one</a></p>
+{{end}}

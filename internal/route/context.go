@@ -77,6 +77,11 @@ func (c *Context) View(content string) error {
 
 // Render executes a precompiled view selected for the current request.
 func (c *Context) Render(name string, data any) error {
+	return c.RenderStatus(http.StatusOK, name, data)
+}
+
+// RenderStatus executes a precompiled view with an explicit response status.
+func (c *Context) RenderStatus(status int, name string, data any) error {
 	if c.renderer == nil {
 		return fmt.Errorf("route: view renderer is not configured")
 	}
@@ -90,6 +95,8 @@ func (c *Context) Render(name string, data any) error {
 		}
 		data = merged
 	}
+	c.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
+	c.Response.WriteHeader(status)
 	return c.renderer.Render(c.Response, c.Request, name, data)
 }
 

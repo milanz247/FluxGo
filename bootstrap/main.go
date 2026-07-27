@@ -6,7 +6,6 @@ import (
 
 	"fluxgo/app/handlers"
 	"fluxgo/app/models"
-	"fluxgo/app/store"
 	"fluxgo/config"
 	"fluxgo/internal/csrf"
 	"fluxgo/internal/database"
@@ -36,6 +35,9 @@ func main() {
 		if err := database.Migrate(db, &models.User{}); err != nil {
 			log.Fatalf("migrate database: %v", err)
 		}
+		if err := database.DropColumnIfExists(db, &models.User{}, "phone"); err != nil {
+			log.Fatalf("clean legacy user schema: %v", err)
+		}
 	}
 
 	views, err := view.New(view.Config{Root: environment.ViewsRoot})
@@ -55,9 +57,11 @@ func main() {
 	Route.Use(csrfProtection.Middleware)
 
 	Routes.Middleware()
-	userHandlers := handlers.NewUserHandler(store.NewUserStore(db))
-	Routes.Web(userHandlers)
-	Routes.API()
+	authHandlers, err := handlers.NewAuthHandler(db)
+	if err != nil {
+		log.Fatalf("initialize authentication: %v", err)
+	}
+	Routes.Web(authHandlers)
 
 	log.Printf(
 		"%s running in %s at %s",
