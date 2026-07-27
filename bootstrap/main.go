@@ -6,6 +6,7 @@ import (
 
 	"fluxgo/config"
 	Route "fluxgo/internal/route"
+	"fluxgo/internal/session"
 	"fluxgo/internal/view"
 	Routes "fluxgo/route"
 )
@@ -21,6 +22,13 @@ func main() {
 		log.Fatalf("boot views: %v", err)
 	}
 	Route.SetRenderer(views)
+
+	sessions := session.New(session.Config{
+		CookieName: environment.SessionCookie,
+		Lifetime:   environment.SessionLifetime,
+		Secure:     environment.SessionSecure,
+	}, nil)
+	Route.Use(sessions.Middleware)
 
 	Routes.Middleware()
 	Routes.Web()

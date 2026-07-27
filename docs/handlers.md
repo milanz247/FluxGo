@@ -29,6 +29,9 @@ c.IsJSON()
 
 The underlying request remains available as `c.Request`.
 
+The globally registered session is available through `c.Session()`. See
+[`sessions.md`](sessions.md) for session configuration and operations.
+
 ## Responses
 
 ```go

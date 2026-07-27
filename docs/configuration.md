@@ -9,6 +9,9 @@ APP_NAME=FluxGo
 APP_ENV=local
 SERVER_ADDR=:8080
 VIEWS_ROOT=views
+SESSION_COOKIE=flux_session
+SESSION_LIFETIME_MINUTES=120
+SESSION_SECURE=false
 ```
 
 | Variable | Default | Purpose |
@@ -17,6 +20,9 @@ VIEWS_ROOT=views
 | `APP_ENV` | `local` | Current environment name |
 | `SERVER_ADDR` | `:8080` | Address passed to `http.ListenAndServe` |
 | `VIEWS_ROOT` | `views` | Root containing `layouts/` and `pages/` |
+| `SESSION_COOKIE` | `flux_session` | Session cookie name |
+| `SESSION_LIFETIME_MINUTES` | `120` | Server-side session lifetime |
+| `SESSION_SECURE` | `false` | Restrict the cookie to HTTPS |
 
 Values may be unquoted, single-quoted, or double-quoted. Blank lines, comments,
 and the optional `export` prefix are supported:

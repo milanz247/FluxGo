@@ -14,6 +14,20 @@ type Context struct {
 	Request  *http.Request
 	renderer Renderer
 	values   map[string]any
+	session  Session
+}
+
+// Session provides request-scoped access to the framework session.
+type Session interface {
+	ID() string
+	Get(string) (any, bool)
+	Has(string) bool
+	Set(string, any) error
+	Pull(string) (any, bool, error)
+	Delete(string) error
+	Clear() error
+	Regenerate() error
+	Destroy() error
 }
 
 // JSON writes a JSON response with the provided status code.
@@ -190,6 +204,17 @@ func (c *Context) MustGet(key string) any {
 		panic(fmt.Sprintf("route: context value %q is not set", key))
 	}
 	return value
+}
+
+// Session returns the session attached by the session middleware.
+func (c *Context) Session() Session {
+	return c.session
+}
+
+// SetSession attaches a session to this request context.
+// It is intended for framework middleware.
+func (c *Context) SetSession(session Session) {
+	c.session = session
 }
 
 // BadRequest writes a standard 400 JSON error response.

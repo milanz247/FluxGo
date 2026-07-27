@@ -5,7 +5,9 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // EnvConfig contains environment-driven application settings.
@@ -14,6 +16,10 @@ type EnvConfig struct {
 	AppEnv     string
 	ServerAddr string
 	ViewsRoot  string
+
+	SessionCookie   string
+	SessionLifetime time.Duration
+	SessionSecure   bool
 }
 
 // Load reads an optional dotenv file and then applies operating-system
@@ -24,11 +30,24 @@ func Load(path string) (EnvConfig, error) {
 		return EnvConfig{}, err
 	}
 
+	sessionMinutes, err := integerValue("SESSION_LIFETIME_MINUTES", 120, fileValues)
+	if err != nil {
+		return EnvConfig{}, err
+	}
+	sessionSecure, err := booleanValue("SESSION_SECURE", false, fileValues)
+	if err != nil {
+		return EnvConfig{}, err
+	}
+
 	return EnvConfig{
 		AppName:    value("APP_NAME", "FluxGo", fileValues),
 		AppEnv:     value("APP_ENV", "local", fileValues),
 		ServerAddr: value("SERVER_ADDR", ":8080", fileValues),
 		ViewsRoot:  value("VIEWS_ROOT", "views", fileValues),
+
+		SessionCookie:   value("SESSION_COOKIE", "flux_session", fileValues),
+		SessionLifetime: time.Duration(sessionMinutes) * time.Minute,
+		SessionSecure:   sessionSecure,
 	}, nil
 }
 
@@ -78,6 +97,24 @@ func value(key, fallback string, fileValues map[string]string) string {
 		return fileValue
 	}
 	return fallback
+}
+
+func integerValue(key string, fallback int, fileValues map[string]string) (int, error) {
+	raw := value(key, strconv.Itoa(fallback), fileValues)
+	parsed, err := strconv.Atoi(raw)
+	if err != nil || parsed <= 0 {
+		return 0, fmt.Errorf("%s must be a positive integer", key)
+	}
+	return parsed, nil
+}
+
+func booleanValue(key string, fallback bool, fileValues map[string]string) (bool, error) {
+	raw := value(key, strconv.FormatBool(fallback), fileValues)
+	parsed, err := strconv.ParseBool(raw)
+	if err != nil {
+		return false, fmt.Errorf("%s must be a boolean", key)
+	}
+	return parsed, nil
 }
 
 func unquote(value string) string {

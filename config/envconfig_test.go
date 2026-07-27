@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"fluxgo/config"
 )
@@ -16,6 +17,9 @@ APP_NAME="My App"
 export APP_ENV=testing
 SERVER_ADDR=:9000
 VIEWS_ROOT=web/views
+SESSION_COOKIE=my_session
+SESSION_LIFETIME_MINUTES=30
+SESSION_SECURE=true
 `)
 	if err := os.WriteFile(path, content, 0o600); err != nil {
 		t.Fatal(err)
@@ -37,6 +41,23 @@ VIEWS_ROOT=web/views
 	}
 	if loaded.ViewsRoot != "web/views" {
 		t.Fatalf("expected views root %q, got %q", "web/views", loaded.ViewsRoot)
+	}
+	if loaded.SessionCookie != "my_session" {
+		t.Fatalf("expected session cookie %q, got %q", "my_session", loaded.SessionCookie)
+	}
+	if loaded.SessionLifetime != 30*time.Minute || !loaded.SessionSecure {
+		t.Fatalf("unexpected session configuration: %+v", loaded)
+	}
+}
+
+func TestLoadRejectsInvalidSessionConfiguration(t *testing.T) {
+	path := filepath.Join(t.TempDir(), ".env")
+	if err := os.WriteFile(path, []byte("SESSION_LIFETIME_MINUTES=never\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := config.Load(path); err == nil {
+		t.Fatal("expected invalid session lifetime to fail")
 	}
 }
 
