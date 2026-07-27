@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+	Routes.Middleware()
 	Routes.Web()
 	Routes.API()
 

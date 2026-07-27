@@ -1,6 +1,7 @@
 package route
 
 import (
+	"fluxgo/internal/middleware"
 	"log"
 	"net/http"
 	"strings"
@@ -9,21 +10,24 @@ import (
 type Handler func(*Context) error
 
 // Middleware wraps a Handler to run logic before or after it.
-type Middleware func(Handler) Handler
+type Middleware = middleware.Middleware[Handler]
 
 // Engine registers routes and serves HTTP requests.
 type Engine struct {
 	mux        *http.ServeMux
-	middleware []Middleware
+	middleware *middleware.Engine[Handler]
 }
 
 func New() *Engine {
-	return &Engine{mux: http.NewServeMux()}
+	return &Engine{
+		mux:        http.NewServeMux(),
+		middleware: middleware.New[Handler](),
+	}
 }
 
 // Use adds middleware that runs on every request handled by the engine.
 func (e *Engine) Use(mw ...Middleware) {
-	e.middleware = append(e.middleware, mw...)
+	e.middleware.Use(mw...)
 }
 
 func (e *Engine) Handle(method, path string, handler Handler) {
@@ -68,12 +72,7 @@ func (e *Engine) wrap(handler Handler) http.HandlerFunc {
 		rw := &responseWriter{ResponseWriter: w}
 		ctx := &Context{Response: rw, Request: r}
 
-		h := handler
-		for i := len(e.middleware) - 1; i >= 0; i-- {
-			h = e.middleware[i](h)
-		}
-
-		if err := h(ctx); err != nil {
+		if err := e.middleware.Wrap(handler)(ctx); err != nil {
 			log.Printf("%s %s: %v", r.Method, r.URL.Path, err)
 			if !rw.started {
 				http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -87,6 +86,7 @@ func (e *Engine) wrap(handler Handler) http.HandlerFunc {
 type responseWriter struct {
 	http.ResponseWriter
 	started bool
+	status  int
 }
 
 func (w *responseWriter) WriteHeader(status int) {
@@ -94,6 +94,7 @@ func (w *responseWriter) WriteHeader(status int) {
 		return
 	}
 	w.started = true
+	w.status = status
 	w.ResponseWriter.WriteHeader(status)
 }
 

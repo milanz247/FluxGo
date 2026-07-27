@@ -50,3 +50,12 @@ func (c *Context) BindJSON(value any) error {
 func (c *Context) Param(name string) string {
 	return c.Request.PathValue(name)
 }
+
+// Status returns the response status code. It returns 200 before a response
+// explicitly writes another status.
+func (c *Context) Status() int {
+	if writer, ok := c.Response.(*responseWriter); ok && writer.status != 0 {
+		return writer.status
+	}
+	return http.StatusOK
+}
