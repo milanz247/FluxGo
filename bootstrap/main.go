@@ -4,13 +4,19 @@ import (
 	"log"
 	"net/http"
 
+	"fluxgo/config"
 	Route "fluxgo/internal/route"
 	"fluxgo/internal/view"
 	Routes "fluxgo/route"
 )
 
 func main() {
-	views, err := view.New(view.Config{Root: "views"})
+	environment, err := config.Load(".env")
+	if err != nil {
+		log.Fatalf("load environment: %v", err)
+	}
+
+	views, err := view.New(view.Config{Root: environment.ViewsRoot})
 	if err != nil {
 		log.Fatalf("boot views: %v", err)
 	}
@@ -20,9 +26,13 @@ func main() {
 	Routes.Web()
 	Routes.API()
 
-	addr := ":8080"
-	log.Printf("server running at http://localhost%s", addr)
-	if err := http.ListenAndServe(addr, Route.HTTPHandler()); err != nil {
+	log.Printf(
+		"%s running in %s at %s",
+		environment.AppName,
+		environment.AppEnv,
+		environment.ServerAddr,
+	)
+	if err := http.ListenAndServe(environment.ServerAddr, Route.HTTPHandler()); err != nil {
 		log.Fatal(err)
 	}
 }
