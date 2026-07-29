@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	Route "fluxgo/internal/route"
@@ -177,6 +178,74 @@ func TestAnyWorksWithRouteGroupMiddleware(t *testing.T) {
 	engine.ServeHTTP(response, httptest.NewRequest(http.MethodPatch, "/api/health", nil))
 	if response.Code != http.StatusOK || !middlewareCalled {
 		t.Fatalf("expected grouped Any route and middleware to run")
+	}
+}
+
+func TestHTTPErrorRendersItsOwnStatusAndMessage(t *testing.T) {
+	engine := Route.New()
+	engine.Get("/missing", func(c *Route.Context) error {
+		return Route.NotFoundError("that resource does not exist")
+	})
+
+	response := httptest.NewRecorder()
+	engine.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/missing", nil))
+
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("expected status %d, got %d", http.StatusNotFound, response.Code)
+	}
+	if got, want := response.Body.String(), "{\"error\":\"that resource does not exist\"}\n"; got != want {
+		t.Fatalf("expected body %q, got %q", want, got)
+	}
+}
+
+func TestHTTPErrorWrappedCauseIsNotExposed(t *testing.T) {
+	engine := Route.New()
+	engine.Get("/broken", func(c *Route.Context) error {
+		return Route.InternalServerError("something went wrong", errors.New("sensitive database detail"))
+	})
+
+	response := httptest.NewRecorder()
+	engine.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/broken", nil))
+
+	if response.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status %d, got %d", http.StatusInternalServerError, response.Code)
+	}
+	if strings.Contains(response.Body.String(), "sensitive database detail") {
+		t.Fatalf("expected the wrapped error to stay out of the response body, got %q", response.Body.String())
+	}
+}
+
+func TestPanicIsRecoveredAsInternalServerError(t *testing.T) {
+	engine := Route.New()
+	engine.Get("/panic", func(c *Route.Context) error {
+		panic("boom")
+	})
+
+	response := httptest.NewRecorder()
+	engine.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/panic", nil))
+
+	if response.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status %d, got %d", http.StatusInternalServerError, response.Code)
+	}
+}
+
+func TestPanicAfterResponseStartedIsNotOverwritten(t *testing.T) {
+	engine := Route.New()
+	engine.Get("/panic-after-write", func(c *Route.Context) error {
+		if err := c.View("partial"); err != nil {
+			return err
+		}
+		panic("boom")
+	})
+
+	response := httptest.NewRecorder()
+	engine.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/panic-after-write", nil))
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected the original %d status to be kept, got %d", http.StatusOK, response.Code)
+	}
+	if got, want := response.Body.String(), "partial"; got != want {
+		t.Fatalf("expected body %q, got %q", want, got)
 	}
 }
 

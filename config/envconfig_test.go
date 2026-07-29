@@ -21,6 +21,8 @@ VIEWS_ROOT=web/views
 SESSION_COOKIE=my_session
 SESSION_LIFETIME_MINUTES=30
 SESSION_SECURE=true
+LOG_LEVEL=debug
+LOG_FORMAT=json
 DB_HOST=mysql
 DB_PORT=3307
 DB_DATABASE=app_test
@@ -60,6 +62,9 @@ DB_RUN_MIGRATIONS=false
 	}
 	if loaded.SessionLifetime != 30*time.Minute || !loaded.SessionSecure {
 		t.Fatalf("unexpected session configuration: %+v", loaded)
+	}
+	if loaded.LogLevel != "debug" || loaded.LogFormat != "json" {
+		t.Fatalf("unexpected logging configuration: %+v", loaded)
 	}
 	if loaded.Database.Host != "mysql" ||
 		loaded.Database.Port != "3307" ||

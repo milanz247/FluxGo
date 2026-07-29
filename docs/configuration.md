@@ -13,6 +13,8 @@ VIEWS_ROOT=views
 SESSION_COOKIE=flux_session
 SESSION_LIFETIME_MINUTES=120
 SESSION_SECURE=false
+LOG_LEVEL=info
+LOG_FORMAT=text
 ```
 
 | Variable | Default | Purpose |
@@ -25,6 +27,8 @@ SESSION_SECURE=false
 | `SESSION_COOKIE` | `flux_session` | Session cookie name |
 | `SESSION_LIFETIME_MINUTES` | `120` | Server-side session lifetime |
 | `SESSION_SECURE` | `false` | Restrict the cookie to HTTPS |
+| `LOG_LEVEL` | `info` | Minimum level logged: `debug`, `info`, `warn`, `error` |
+| `LOG_FORMAT` | `text` | Log encoding: `text` or `json`. See [`logging.md`](logging.md) |
 
 Database settings are documented separately in
 [`database.md`](database.md). Keep real database passwords in `.env`; the file

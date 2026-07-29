@@ -2,7 +2,8 @@ package route
 
 import (
 	"fluxgo/internal/middleware"
-	"log"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 )
@@ -112,13 +113,27 @@ func (e *Engine) wrap(handler Handler) http.HandlerFunc {
 		rw := &responseWriter{ResponseWriter: w}
 		ctx := &Context{Response: rw, Request: r, renderer: e.renderer}
 
-		if err := e.middleware.Wrap(handler)(ctx); err != nil {
-			log.Printf("%s %s: %v", r.Method, r.URL.Path, err)
-			if !rw.started {
-				http.Error(rw, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			}
+		err := e.recoverAndRun(handler, ctx)
+		if err == nil {
+			return
+		}
+
+		slog.Error("request failed", "method", r.Method, "path", r.URL.Path, "error", err)
+		if !rw.started {
+			respondError(ctx, err)
 		}
 	}
+}
+
+// recoverAndRun runs the handler chain and converts a panic into an error so
+// a single failing request can never take down the server.
+func (e *Engine) recoverAndRun(handler Handler, ctx *Context) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = InternalServerError("internal server error", fmt.Errorf("panic: %v", recovered))
+		}
+	}()
+	return e.middleware.Wrap(handler)(ctx)
 }
 
 // responseWriter tracks whether the response has started, so the engine

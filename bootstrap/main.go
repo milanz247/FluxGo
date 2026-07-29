@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,6 +15,7 @@ import (
 	"fluxgo/internal/auth"
 	"fluxgo/internal/csrf"
 	"fluxgo/internal/database"
+	"fluxgo/internal/logging"
 	AuthMail "fluxgo/internal/mail"
 	Route "fluxgo/internal/route"
 	"fluxgo/internal/session"
@@ -25,34 +26,42 @@ import (
 func main() {
 	environment, err := config.Load(".env")
 	if err != nil {
-		log.Fatalf("load environment: %v", err)
+		slog.Error("load environment", "error", err)
+		os.Exit(1)
 	}
+
+	logger := logging.New(logging.Config{Level: environment.LogLevel, Format: environment.LogFormat})
+	slog.SetDefault(logger)
 
 	db, err := database.ConnectMySQL(environment.Database)
 	if err != nil {
-		log.Fatalf("connect database: %v", err)
+		slog.Error("connect database", "error", err)
+		os.Exit(1)
 	}
 	sqlDB, err := db.DB()
 	if err != nil {
-		log.Fatalf("access database connection: %v", err)
+		slog.Error("access database connection", "error", err)
+		os.Exit(1)
 	}
 	defer sqlDB.Close()
 
 	if environment.Database.RunMigrations {
 		if err := database.RunMigrations(db, database.DefaultMigrations()); err != nil {
-			log.Fatalf("run database migrations: %v", err)
+			slog.Error("run database migrations", "error", err)
+			os.Exit(1)
 		}
 	}
 
 	views, err := view.New(view.Config{Root: environment.ViewsRoot})
 	if err != nil {
-		log.Fatalf("boot views: %v", err)
+		slog.Error("boot views", "error", err)
+		os.Exit(1)
 	}
 	Route.SetRenderer(views)
 
 	sessionStore := session.NewDatabaseStore(db)
 	if err := sessionStore.DeleteExpired(time.Now()); err != nil {
-		log.Printf("clean expired sessions: %v", err)
+		slog.Error("clean expired sessions", "error", err)
 	}
 	sessions := session.New(session.Config{
 		CookieName: environment.SessionCookie,
@@ -62,7 +71,7 @@ func main() {
 
 	csrfProtection := csrf.New(csrf.Config{})
 
-	Routes.Middleware(environment.SessionSecure)
+	Routes.Middleware(environment.SessionSecure, logger)
 	loginLimiter := auth.NewLoginLimiter(db, 5, 15*time.Minute, 15*time.Minute)
 	authHandlers, err := handlers.NewAuthHandler(
 		db,
@@ -71,7 +80,8 @@ func main() {
 		loginLimiter,
 	)
 	if err != nil {
-		log.Fatalf("initialize authentication: %v", err)
+		slog.Error("initialize authentication", "error", err)
+		os.Exit(1)
 	}
 	Routes.Web(
 		authHandlers,
@@ -93,18 +103,19 @@ func main() {
 	go cleanupExpiredSessions(shutdownSignal, sessionStore)
 
 	go func() {
-		log.Printf("%s running in %s at %s", environment.AppName, environment.AppEnv, environment.ServerAddr)
+		slog.Info("server starting", "app", environment.AppName, "env", environment.AppEnv, "addr", environment.ServerAddr)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("serve HTTP: %v", err)
+			slog.Error("serve HTTP", "error", err)
+			os.Exit(1)
 		}
 	}()
 
 	<-shutdownSignal.Done()
-	log.Print("shutting down server")
+	slog.Info("shutting down server")
 	shutdownContext, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := server.Shutdown(shutdownContext); err != nil {
-		log.Printf("graceful shutdown failed: %v", err)
+		slog.Error("graceful shutdown failed", "error", err)
 	}
 }
 
@@ -117,7 +128,7 @@ func cleanupExpiredSessions(ctx context.Context, store *session.DatabaseStore) {
 			return
 		case now := <-ticker.C:
 			if err := store.DeleteExpired(now); err != nil {
-				log.Printf("clean expired sessions: %v", err)
+				slog.Error("clean expired sessions", "error", err)
 			}
 		}
 	}

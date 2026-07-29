@@ -22,6 +22,9 @@ type EnvConfig struct {
 	SessionLifetime time.Duration
 	SessionSecure   bool
 
+	LogLevel  string
+	LogFormat string
+
 	Database DatabaseConfig
 }
 
@@ -68,6 +71,9 @@ func Load(path string) (EnvConfig, error) {
 		SessionCookie:   value("SESSION_COOKIE", "flux_session", fileValues),
 		SessionLifetime: time.Duration(sessionMinutes) * time.Minute,
 		SessionSecure:   sessionSecure,
+
+		LogLevel:  value("LOG_LEVEL", "info", fileValues),
+		LogFormat: value("LOG_FORMAT", "text", fileValues),
 
 		Database: DatabaseConfig{
 			Host:            value("DB_HOST", "127.0.0.1", fileValues),

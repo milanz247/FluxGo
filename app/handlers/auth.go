@@ -2,10 +2,8 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"net/http"
-	"net/mail"
 	"strconv"
 	"strings"
 	"time"
@@ -15,14 +13,22 @@ import (
 	AuthMail "fluxgo/internal/mail"
 	Route "fluxgo/internal/route"
 	"fluxgo/internal/session"
+	"fluxgo/internal/validation"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
-const (
-	minimumPasswordLength = 8
-	maximumPasswordLength = 1024
-)
+type registerInput struct {
+	Name                 string `validate:"required" label:"Name"`
+	Email                string `validate:"required,email" label:"Email"`
+	Password             string `validate:"required,min=8,max=1024" label:"Password"`
+	PasswordConfirmation string `validate:"required,eqfield=Password" label:"Password confirmation"`
+}
+
+type resetPasswordInput struct {
+	Password             string `validate:"required,min=8,max=1024" label:"Password"`
+	PasswordConfirmation string `validate:"required,eqfield=Password" label:"Password confirmation"`
+}
 
 type AuthHandler struct {
 	database          *gorm.DB
@@ -67,11 +73,12 @@ func (handler *AuthHandler) Register(c *Route.Context) error {
 	confirmation := c.Form("password_confirmation")
 	data := Route.Data{"Title": "Create account", "OldName": name, "OldEmail": email}
 
-	if name == "" || !validEmail(email) {
-		return renderAuthError(c, "auth/register", data, "Enter a valid name and email address.")
-	}
-	if err := validatePassword(password, confirmation); err != nil {
-		return renderAuthError(c, "auth/register", data, err.Error())
+	input := registerInput{Name: name, Email: email, Password: password, PasswordConfirmation: confirmation}
+	if err := validation.Validate(input); err != nil {
+		var errs validation.Errors
+		errors.As(err, &errs)
+		return renderAuthError(c, "auth/register", data,
+			firstError(errs, "Name", "Email", "Password", "Password confirmation"))
 	}
 
 	passwordHash, err := auth.HashPassword(password)
@@ -227,8 +234,12 @@ func (handler *AuthHandler) ResetPassword(c *Route.Context) error {
 	token := c.Form("token")
 	data := Route.Data{"Title": "Reset password", "Token": token}
 	password := c.Form("password")
-	if err := validatePassword(password, c.Form("password_confirmation")); err != nil {
-		return renderAuthError(c, "auth/reset-password", data, err.Error())
+	input := resetPasswordInput{Password: password, PasswordConfirmation: c.Form("password_confirmation")}
+	if err := validation.Validate(input); err != nil {
+		var errs validation.Errors
+		errors.As(err, &errs)
+		return renderAuthError(c, "auth/reset-password", data,
+			firstError(errs, "Password", "Password confirmation"))
 	}
 	hash, err := auth.HashPassword(password)
 	if err != nil {
@@ -350,22 +361,23 @@ func renderAuthError(c *Route.Context, view string, data Route.Data, message str
 	return c.RenderStatus(http.StatusUnprocessableEntity, view, data)
 }
 
-func validatePassword(password, confirmation string) error {
-	if len(password) < minimumPasswordLength || len(password) > maximumPasswordLength {
-		return fmt.Errorf("password must be between 8 and 1024 characters")
+// firstError returns the first validation failure found among fields, in
+// priority order, formatted as a single user-facing sentence.
+func firstError(errs validation.Errors, fields ...string) string {
+	for _, field := range fields {
+		if message := errs.First(field); message != "" {
+			return field + " " + message + "."
+		}
 	}
-	if password != confirmation {
-		return fmt.Errorf("password confirmation does not match")
+	for field, messages := range errs {
+		if len(messages) > 0 {
+			return field + " " + messages[0] + "."
+		}
 	}
-	return nil
+	return "The submitted data is invalid."
 }
 
 func normalizeEmail(email string) string { return strings.ToLower(strings.TrimSpace(email)) }
-
-func validEmail(email string) bool {
-	address, err := mail.ParseAddress(email)
-	return err == nil && address.Address == email
-}
 
 func clientIP(request *http.Request) string {
 	host, _, err := net.SplitHostPort(request.RemoteAddr)
