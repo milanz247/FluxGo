@@ -2,6 +2,7 @@
 <h1>Welcome back</h1>
 <p>Sign in to continue to your dashboard.</p>
 
+{{if .Message}}<p role="status">{{.Message}}</p>{{end}}
 {{if .Error}}<p role="alert">{{.Error}}</p>{{end}}
 
 <form method="post" action="/login">
@@ -23,4 +24,5 @@
 </form>
 
 <p>No account yet? <a href="/register">Create one</a></p>
+<p><a href="/forgot-password">Forgot your password?</a></p>
 {{end}}

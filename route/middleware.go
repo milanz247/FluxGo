@@ -6,6 +6,6 @@ import (
 )
 
 // Middleware registers application-wide middleware.
-func Middleware() {
-	Route.Use(AppMiddleware.Logger)
+func Middleware(hsts bool) {
+	Route.Use(AppMiddleware.SecurityHeaders(hsts), AppMiddleware.Logger)
 }

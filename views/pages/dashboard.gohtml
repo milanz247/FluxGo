@@ -2,10 +2,19 @@
 <h1>Dashboard</h1>
 <p>You are signed in successfully.</p>
 
+{{if .Message}}<p role="status">{{.Message}}</p>{{end}}
 <section>
 	<p><strong>Name:</strong> {{.User.Name}}</p>
 	<p><strong>Email:</strong> {{.User.Email}}</p>
+	<p><strong>Email verified:</strong> {{if .Verified}}Yes{{else}}No{{end}}</p>
 </section>
+
+{{if not .Verified}}
+<form method="post" action="/email/verification-notification">
+	{{csrfField .CSRFToken}}
+	<button type="submit">Resend verification email</button>
+</form>
+{{end}}
 
 <form method="post" action="/logout">
 	{{csrfField .CSRFToken}}

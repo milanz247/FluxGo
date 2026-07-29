@@ -18,7 +18,7 @@ type DatabaseConfig struct {
 	MaxIdleConns    int
 	MaxOpenConns    int
 	ConnMaxLifetime time.Duration
-	AutoMigrate     bool
+	RunMigrations   bool
 }
 
 // DSN returns a MySQL driver data source name.

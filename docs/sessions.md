@@ -4,22 +4,21 @@ FluxGo provides globally available, server-side sessions. The browser cookie
 contains only a cryptographically random session ID; session values remain in
 the configured server-side store.
 
-The default bootstrap uses the concurrent in-memory store:
+The default bootstrap uses the GORM database store:
 
 ```go
+sessionStore := session.NewDatabaseStore(db)
 sessions := session.New(session.Config{
 	CookieName: environment.SessionCookie,
 	Lifetime:   environment.SessionLifetime,
 	Secure:     environment.SessionSecure,
-}, nil)
+}, sessionStore)
 
 Route.Use(sessions.Middleware)
 ```
 
-Passing `nil` as the store creates a `MemoryStore`. Memory sessions are lost
-when the application restarts and are not shared between multiple application
-instances. Implement the `session.Store` interface for a persistent or
-distributed production store.
+Sessions therefore survive hot reloads and application restarts. Passing `nil`
+still creates a `MemoryStore`, which is useful for isolated unit tests.
 
 ## Configuration
 

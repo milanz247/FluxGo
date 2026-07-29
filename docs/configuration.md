@@ -7,6 +7,7 @@ deployments to inject settings without a file.
 ```dotenv
 APP_NAME=FluxGo
 APP_ENV=local
+APP_URL=http://localhost:8080
 SERVER_ADDR=:8080
 VIEWS_ROOT=views
 SESSION_COOKIE=flux_session
@@ -18,6 +19,7 @@ SESSION_SECURE=false
 | --- | --- | --- |
 | `APP_NAME` | `FluxGo` | Application name used in logs |
 | `APP_ENV` | `local` | Current environment name |
+| `APP_URL` | `http://localhost:8080` | Base URL used in email links |
 | `SERVER_ADDR` | `:8080` | Address passed to `http.ListenAndServe` |
 | `VIEWS_ROOT` | `views` | Root containing `layouts/` and `pages/` |
 | `SESSION_COOKIE` | `flux_session` | Session cookie name |

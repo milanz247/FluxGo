@@ -14,6 +14,7 @@ import (
 type EnvConfig struct {
 	AppName    string
 	AppEnv     string
+	AppURL     string
 	ServerAddr string
 	ViewsRoot  string
 
@@ -52,7 +53,7 @@ func Load(path string) (EnvConfig, error) {
 	if err != nil {
 		return EnvConfig{}, err
 	}
-	autoMigrate, err := booleanValue("DB_AUTO_MIGRATE", true, fileValues)
+	runMigrations, err := booleanValue("DB_RUN_MIGRATIONS", true, fileValues)
 	if err != nil {
 		return EnvConfig{}, err
 	}
@@ -60,6 +61,7 @@ func Load(path string) (EnvConfig, error) {
 	return EnvConfig{
 		AppName:    value("APP_NAME", "FluxGo", fileValues),
 		AppEnv:     value("APP_ENV", "local", fileValues),
+		AppURL:     strings.TrimRight(value("APP_URL", "http://localhost:8080", fileValues), "/"),
 		ServerAddr: value("SERVER_ADDR", ":8080", fileValues),
 		ViewsRoot:  value("VIEWS_ROOT", "views", fileValues),
 
@@ -77,7 +79,7 @@ func Load(path string) (EnvConfig, error) {
 			MaxIdleConns:    maxIdleConns,
 			MaxOpenConns:    maxOpenConns,
 			ConnMaxLifetime: time.Duration(connectionMinutes) * time.Minute,
-			AutoMigrate:     autoMigrate,
+			RunMigrations:   runMigrations,
 		},
 	}, nil
 }

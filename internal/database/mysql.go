@@ -32,23 +32,3 @@ func ConnectMySQL(config config.DatabaseConfig) (*gorm.DB, error) {
 	}
 	return connection, nil
 }
-
-// Migrate creates or updates tables for the supplied models.
-func Migrate(connection *gorm.DB, models ...any) error {
-	if err := connection.AutoMigrate(models...); err != nil {
-		return fmt.Errorf("auto migrate database: %w", err)
-	}
-	return nil
-}
-
-// DropColumnIfExists removes an obsolete model column during a controlled
-// schema transition.
-func DropColumnIfExists(connection *gorm.DB, model any, column string) error {
-	if !connection.Migrator().HasColumn(model, column) {
-		return nil
-	}
-	if err := connection.Migrator().DropColumn(model, column); err != nil {
-		return fmt.Errorf("drop obsolete column %q: %w", column, err)
-	}
-	return nil
-}

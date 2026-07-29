@@ -7,16 +7,30 @@ import (
 )
 
 // Web registers browser-facing routes.
-func Web(auth *handlers.AuthHandler) {
-	Route.Get("/", auth.Home)
+func Web(
+	auth *handlers.AuthHandler,
+	health Route.Handler,
+	sessionMiddleware Route.Middleware,
+	csrfMiddleware Route.Middleware,
+) {
+	Route.Get("/health", health)
 
-	guest := Route.Group("").Use(middleware.Guest)
+	web := Route.Group("").Use(sessionMiddleware, csrfMiddleware)
+	web.Get("/", auth.Home)
+	web.Get("/email/verify", auth.VerifyEmail)
+
+	guest := web.Group("").Use(middleware.Guest)
 	guest.Get("/register", auth.ShowRegister)
 	guest.Post("/register", auth.Register)
 	guest.Get("/login", auth.ShowLogin)
 	guest.Post("/login", auth.Login)
+	guest.Get("/forgot-password", auth.ShowForgotPassword)
+	guest.Post("/forgot-password", auth.ForgotPassword)
+	guest.Get("/reset-password", auth.ShowResetPassword)
+	guest.Post("/reset-password", auth.ResetPassword)
 
-	protected := Route.Group("").Use(middleware.Auth)
+	protected := web.Group("").Use(middleware.Auth)
 	protected.Get("/dashboard", auth.Dashboard)
 	protected.Post("/logout", auth.Logout)
+	protected.Post("/email/verification-notification", auth.ResendVerification)
 }

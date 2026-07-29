@@ -15,6 +15,7 @@ func TestLoadReadsDotEnv(t *testing.T) {
 # Application settings
 APP_NAME="My App"
 export APP_ENV=testing
+APP_URL=https://example.test
 SERVER_ADDR=:9000
 VIEWS_ROOT=web/views
 SESSION_COOKIE=my_session
@@ -28,7 +29,7 @@ DB_PASSWORD=secret
 DB_MAX_IDLE_CONNS=5
 DB_MAX_OPEN_CONNS=25
 DB_CONN_MAX_LIFETIME_MINUTES=15
-DB_AUTO_MIGRATE=false
+DB_RUN_MIGRATIONS=false
 `)
 	if err := os.WriteFile(path, content, 0o600); err != nil {
 		t.Fatal(err)
@@ -44,6 +45,9 @@ DB_AUTO_MIGRATE=false
 	}
 	if loaded.AppEnv != "testing" {
 		t.Fatalf("expected app environment %q, got %q", "testing", loaded.AppEnv)
+	}
+	if loaded.AppURL != "https://example.test" {
+		t.Fatalf("unexpected app URL %q", loaded.AppURL)
 	}
 	if loaded.ServerAddr != ":9000" {
 		t.Fatalf("expected server address %q, got %q", ":9000", loaded.ServerAddr)
@@ -67,7 +71,7 @@ DB_AUTO_MIGRATE=false
 	if loaded.Database.MaxIdleConns != 5 ||
 		loaded.Database.MaxOpenConns != 25 ||
 		loaded.Database.ConnMaxLifetime != 15*time.Minute ||
-		loaded.Database.AutoMigrate {
+		loaded.Database.RunMigrations {
 		t.Fatalf("unexpected database pool configuration: %+v", loaded.Database)
 	}
 }

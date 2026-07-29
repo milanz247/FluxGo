@@ -13,7 +13,7 @@ DB_CHARSET=utf8mb4
 DB_MAX_IDLE_CONNS=10
 DB_MAX_OPEN_CONNS=100
 DB_CONN_MAX_LIFETIME_MINUTES=60
-DB_AUTO_MIGRATE=true
+DB_RUN_MIGRATIONS=true
 ```
 
 Create the development database before starting the application:
@@ -33,22 +33,19 @@ flux dev
 The application verifies the connection with `Ping` during startup. Pool sizes
 and connection lifetime are configured through `database/sql`.
 
-## Models and migration
+## Versioned migrations
 
-The user model is in `app/models/user.go`. When `DB_AUTO_MIGRATE=true`, startup
-runs:
+When `DB_RUN_MIGRATIONS=true`, startup applies pending migrations from the
+ordered registry in `internal/database/migrations.go`. Applied versions are
+recorded in `schema_migrations`, so every migration runs once.
 
 ```go
-database.Migrate(db, &models.User{})
+database.RunMigrations(db, database.DefaultMigrations())
 ```
 
-GORM `AutoMigrate` is convenient during development. For production systems,
-set `DB_AUTO_MIGRATE=false` and use reviewed, versioned migrations.
-
-The current development migration also removes the obsolete `phone` column
-from the earlier CRUD example. This one-time cleanup allows the authentication
-model (`name`, `email`, and `password_hash`) to write to an existing development
-`users` table.
+The migration history creates users, persistent sessions, password reset
+tokens, verification tokens, and login rate-limit buckets. It also includes the
+one-time removal of the obsolete `phone` column from the CRUD prototype.
 
 ## MVH database access
 
