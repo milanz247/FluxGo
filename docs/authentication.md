@@ -3,7 +3,7 @@
 The application uses a compact Model-View-Handler structure:
 
 - Model: `app/models/user.go`
-- Views: `views/pages/login.gohtml`, `register.gohtml`, and `dashboard.gohtml`
+- Views: `views/pages/auth/login.gohtml`, `auth/register.gohtml`, `auth/forgot-password.gohtml`, `auth/reset-password.gohtml`, and `dashboard.gohtml`
 - Handler: `app/handlers/auth.go`
 - Middleware: `app/middleware/auth.go`
 

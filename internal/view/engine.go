@@ -5,6 +5,7 @@ import (
 	"fluxgo/internal/helpers"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -46,12 +47,13 @@ func New(config Config) (*Engine, error) {
 	}
 
 	layoutPath := filepath.Join(root, "layouts", "main"+extension)
-	pagePaths, err := filepath.Glob(filepath.Join(root, "pages", "*"+extension))
+	pagesRoot := filepath.Join(root, "pages")
+	pagePaths, err := findPages(pagesRoot, extension)
 	if err != nil {
 		return nil, fmt.Errorf("find page templates: %w", err)
 	}
 	if len(pagePaths) == 0 {
-		return nil, fmt.Errorf("no page templates found in %q", filepath.Join(root, "pages"))
+		return nil, fmt.Errorf("no page templates found in %q", pagesRoot)
 	}
 
 	engine := &Engine{
@@ -60,7 +62,11 @@ func New(config Config) (*Engine, error) {
 	}
 
 	for _, pagePath := range pagePaths {
-		name := strings.TrimSuffix(filepath.Base(pagePath), extension)
+		relative, err := filepath.Rel(pagesRoot, pagePath)
+		if err != nil {
+			return nil, fmt.Errorf("resolve page template %q: %w", pagePath, err)
+		}
+		name := strings.TrimSuffix(filepath.ToSlash(relative), extension)
 
 		full, err := template.New(name).Funcs(funcs).ParseFiles(layoutPath, pagePath)
 		if err != nil {
@@ -101,9 +107,29 @@ func (e *Engine) Render(w http.ResponseWriter, r *http.Request, name string, dat
 }
 
 func (e *Engine) cleanName(name string) string {
-	name = filepath.Base(strings.TrimSpace(name))
+	name = filepath.ToSlash(strings.TrimSpace(name))
 	name = strings.TrimSuffix(name, e.extension)
 	return strings.TrimSuffix(name, partialSuffix)
+}
+
+// findPages walks the pages directory recursively so pages can be organized
+// into feature subfolders, e.g. pages/auth/login.gohtml renders as "auth/login".
+func findPages(pagesRoot, extension string) ([]string, error) {
+	var paths []string
+	err := filepath.WalkDir(pagesRoot, func(path string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() || filepath.Ext(entry.Name()) != extension {
+			return nil
+		}
+		paths = append(paths, path)
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return paths, nil
 }
 
 func normalizeExtension(extension string) string {

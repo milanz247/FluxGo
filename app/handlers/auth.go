@@ -57,7 +57,7 @@ func (handler *AuthHandler) Home(c *Route.Context) error {
 }
 
 func (handler *AuthHandler) ShowRegister(c *Route.Context) error {
-	return c.Render("register", Route.Data{"Title": "Create account"})
+	return c.Render("auth/register", Route.Data{"Title": "Create account"})
 }
 
 func (handler *AuthHandler) Register(c *Route.Context) error {
@@ -68,10 +68,10 @@ func (handler *AuthHandler) Register(c *Route.Context) error {
 	data := Route.Data{"Title": "Create account", "OldName": name, "OldEmail": email}
 
 	if name == "" || !validEmail(email) {
-		return renderAuthError(c, "register", data, "Enter a valid name and email address.")
+		return renderAuthError(c, "auth/register", data, "Enter a valid name and email address.")
 	}
 	if err := validatePassword(password, confirmation); err != nil {
-		return renderAuthError(c, "register", data, err.Error())
+		return renderAuthError(c, "auth/register", data, err.Error())
 	}
 
 	passwordHash, err := auth.HashPassword(password)
@@ -81,7 +81,7 @@ func (handler *AuthHandler) Register(c *Route.Context) error {
 	user := models.User{Name: name, Email: email, PasswordHash: passwordHash}
 	if err := handler.database.WithContext(c.Request.Context()).Create(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return renderAuthError(c, "register", data, "An account already exists for that email address.")
+			return renderAuthError(c, "auth/register", data, "An account already exists for that email address.")
 		}
 		return err
 	}
@@ -104,7 +104,7 @@ func (handler *AuthHandler) ShowLogin(c *Route.Context) error {
 	case "invalid-verification":
 		message = "That verification link is invalid or expired."
 	}
-	return c.Render("login", Route.Data{"Title": "Sign in", "Message": message})
+	return c.Render("auth/login", Route.Data{"Title": "Sign in", "Message": message})
 }
 
 func (handler *AuthHandler) Login(c *Route.Context) error {
@@ -123,7 +123,7 @@ func (handler *AuthHandler) Login(c *Route.Context) error {
 			seconds = 1
 		}
 		c.SetHeader("Retry-After", strconv.Itoa(seconds))
-		return c.RenderStatus(http.StatusTooManyRequests, "login", data.Set(
+		return c.RenderStatus(http.StatusTooManyRequests, "auth/login", data.Set(
 			"Error", "Too many login attempts. Try again later.",
 		))
 	}
@@ -141,7 +141,7 @@ func (handler *AuthHandler) Login(c *Route.Context) error {
 		if err := handler.limiter.RecordFailure(key, handler.now()); err != nil {
 			return err
 		}
-		return renderAuthError(c, "login", data, "The email address or password is incorrect.")
+		return renderAuthError(c, "auth/login", data, "The email address or password is incorrect.")
 	}
 
 	if err := handler.limiter.Clear(key); err != nil {
@@ -178,7 +178,7 @@ func (handler *AuthHandler) Logout(c *Route.Context) error {
 }
 
 func (handler *AuthHandler) ShowForgotPassword(c *Route.Context) error {
-	return c.Render("forgot-password", Route.Data{"Title": "Forgot password"})
+	return c.Render("auth/forgot-password", Route.Data{"Title": "Forgot password"})
 }
 
 func (handler *AuthHandler) ForgotPassword(c *Route.Context) error {
@@ -207,7 +207,7 @@ func (handler *AuthHandler) ForgotPassword(c *Route.Context) error {
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
 	}
-	return c.Render("forgot-password", Route.Data{
+	return c.Render("auth/forgot-password", Route.Data{
 		"Title":   "Forgot password",
 		"Message": "If that email is registered, a password reset link has been sent.",
 	})
@@ -216,11 +216,11 @@ func (handler *AuthHandler) ForgotPassword(c *Route.Context) error {
 func (handler *AuthHandler) ShowResetPassword(c *Route.Context) error {
 	token := c.Query("token")
 	if _, err := handler.validReset(token); err != nil {
-		return c.RenderStatus(http.StatusUnprocessableEntity, "reset-password", Route.Data{
+		return c.RenderStatus(http.StatusUnprocessableEntity, "auth/reset-password", Route.Data{
 			"Title": "Reset password", "Error": "This reset link is invalid or expired.",
 		})
 	}
-	return c.Render("reset-password", Route.Data{"Title": "Reset password", "Token": token})
+	return c.Render("auth/reset-password", Route.Data{"Title": "Reset password", "Token": token})
 }
 
 func (handler *AuthHandler) ResetPassword(c *Route.Context) error {
@@ -228,7 +228,7 @@ func (handler *AuthHandler) ResetPassword(c *Route.Context) error {
 	data := Route.Data{"Title": "Reset password", "Token": token}
 	password := c.Form("password")
 	if err := validatePassword(password, c.Form("password_confirmation")); err != nil {
-		return renderAuthError(c, "reset-password", data, err.Error())
+		return renderAuthError(c, "auth/reset-password", data, err.Error())
 	}
 	hash, err := auth.HashPassword(password)
 	if err != nil {
@@ -253,7 +253,7 @@ func (handler *AuthHandler) ResetPassword(c *Route.Context) error {
 		return tx.Where("user_id = ?", reset.UserID).Delete(&session.DatabaseRecord{}).Error
 	})
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return renderAuthError(c, "reset-password", data, "This reset link is invalid or expired.")
+		return renderAuthError(c, "auth/reset-password", data, "This reset link is invalid or expired.")
 	}
 	if err != nil {
 		return err
