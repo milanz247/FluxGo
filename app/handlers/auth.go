@@ -77,7 +77,7 @@ func (handler *AuthHandler) Register(c *Route.Context) error {
 	if err := validation.Validate(input); err != nil {
 		var errs validation.Errors
 		errors.As(err, &errs)
-		return renderAuthError(c, "auth/register", data,
+		return renderFormError(c, "auth/register", data,
 			firstError(errs, "Name", "Email", "Password", "Password confirmation"))
 	}
 
@@ -88,7 +88,7 @@ func (handler *AuthHandler) Register(c *Route.Context) error {
 	user := models.User{Name: name, Email: email, PasswordHash: passwordHash}
 	if err := handler.database.WithContext(c.Request.Context()).Create(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return renderAuthError(c, "auth/register", data, "An account already exists for that email address.")
+			return renderFormError(c, "auth/register", data, "An account already exists for that email address.")
 		}
 		return err
 	}
@@ -148,7 +148,7 @@ func (handler *AuthHandler) Login(c *Route.Context) error {
 		if err := handler.limiter.RecordFailure(key, handler.now()); err != nil {
 			return err
 		}
-		return renderAuthError(c, "auth/login", data, "The email address or password is incorrect.")
+		return renderFormError(c, "auth/login", data, "The email address or password is incorrect.")
 	}
 
 	if err := handler.limiter.Clear(key); err != nil {
@@ -238,7 +238,7 @@ func (handler *AuthHandler) ResetPassword(c *Route.Context) error {
 	if err := validation.Validate(input); err != nil {
 		var errs validation.Errors
 		errors.As(err, &errs)
-		return renderAuthError(c, "auth/reset-password", data,
+		return renderFormError(c, "auth/reset-password", data,
 			firstError(errs, "Password", "Password confirmation"))
 	}
 	hash, err := auth.HashPassword(password)
@@ -264,7 +264,7 @@ func (handler *AuthHandler) ResetPassword(c *Route.Context) error {
 		return tx.Where("user_id = ?", reset.UserID).Delete(&session.DatabaseRecord{}).Error
 	})
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return renderAuthError(c, "auth/reset-password", data, "This reset link is invalid or expired.")
+		return renderFormError(c, "auth/reset-password", data, "This reset link is invalid or expired.")
 	}
 	if err != nil {
 		return err
@@ -356,7 +356,7 @@ func (handler *AuthHandler) authenticate(c *Route.Context, userID uint) error {
 	return c.Session().Set("user_id", userID)
 }
 
-func renderAuthError(c *Route.Context, view string, data Route.Data, message string) error {
+func renderFormError(c *Route.Context, view string, data Route.Data, message string) error {
 	data["Error"] = message
 	return c.RenderStatus(http.StatusUnprocessableEntity, view, data)
 }

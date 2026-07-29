@@ -64,6 +64,13 @@ func DefaultMigrations() []Migration {
 			}
 			return nil
 		}},
+		{Version: 5, Name: "create_products", Up: func(tx *gorm.DB) error {
+			if tx.Migrator().HasTable(&models.Product{}) {
+				return nil
+			}
+			// CreateTable derives the Name index from the model's gorm tag.
+			return tx.Migrator().CreateTable(&models.Product{})
+		}},
 	}
 }
 

@@ -1,0 +1,45 @@
+{{define "content"}}
+<h1>Products</h1>
+<p><a href="/dashboard">&larr; Back to dashboard</a></p>
+
+<form method="get" action="/products">
+	<label for="q">Search</label>
+	<br>
+	<input id="q" name="q" type="search" value="{{.Search}}" placeholder="Search by product name">
+	<button type="submit">Search</button>
+	{{if .Search}}<a href="/products">Clear</a>{{end}}
+</form>
+
+<p><a href="/products/create">Add product</a></p>
+
+{{if .Products}}
+<table>
+	<thead>
+		<tr>
+			<th>Name</th>
+			<th>Price</th>
+			<th>Qty</th>
+			<th>Actions</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{range .Products}}
+		<tr>
+			<td>{{.Name}}</td>
+			<td>{{printf "%.2f" .Price}}</td>
+			<td>{{.Qty}}</td>
+			<td>
+				<a href="/products/{{.ID}}/edit">Edit</a>
+				<form method="post" action="/products/{{.ID}}/delete" style="display:inline">
+					{{csrfField $.CSRFToken}}
+					<button type="submit" onclick="return confirm('Delete this product?')">Delete</button>
+				</form>
+			</td>
+		</tr>
+		{{end}}
+	</tbody>
+</table>
+{{else}}
+<p>{{if .Search}}No products match "{{.Search}}".{{else}}No products yet.{{end}}</p>
+{{end}}
+{{end}}

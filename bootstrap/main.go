@@ -85,6 +85,7 @@ func main() {
 	}
 	Routes.Web(
 		authHandlers,
+		handlers.NewProductHandler(db),
 		handlers.Health(db),
 		sessions.Middleware,
 		csrfProtection.Middleware,

@@ -39,8 +39,9 @@ func (mailer *captureMailer) SendPasswordReset(_ string, link string) error {
 }
 
 type authApplication struct {
-	engine *Route.Engine
-	mailer *captureMailer
+	engine   *Route.Engine
+	mailer   *captureMailer
+	database *gorm.DB
 }
 
 func TestRegisterVerifyLogoutAndLoginFlow(t *testing.T) {
@@ -196,7 +197,7 @@ func newAuthApplication(t *testing.T) *authApplication {
 	engine.Get("/dashboard", authHandler.Dashboard)
 	engine.Post("/logout", authHandler.Logout)
 	engine.Get("/health", handlers.Health(connection))
-	return &authApplication{engine: engine, mailer: mailer}
+	return &authApplication{engine: engine, mailer: mailer, database: connection}
 }
 
 func registerUser(t *testing.T, app *authApplication, email, password string) *http.Cookie {

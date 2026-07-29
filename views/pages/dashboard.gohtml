@@ -9,6 +9,8 @@
 	<p><strong>Email verified:</strong> {{if .Verified}}Yes{{else}}No{{end}}</p>
 </section>
 
+<p><a href="/products">Manage products</a></p>
+
 {{if not .Verified}}
 <form method="post" action="/email/verification-notification">
 	{{csrfField .CSRFToken}}

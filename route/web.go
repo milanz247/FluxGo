@@ -9,6 +9,7 @@ import (
 // Web registers browser-facing routes.
 func Web(
 	auth *handlers.AuthHandler,
+	product *handlers.ProductHandler,
 	health Route.Handler,
 	sessionMiddleware Route.Middleware,
 	csrfMiddleware Route.Middleware,
@@ -33,4 +34,12 @@ func Web(
 	protected.Get("/dashboard", auth.Dashboard)
 	protected.Post("/logout", auth.Logout)
 	protected.Post("/email/verification-notification", auth.ResendVerification)
+
+	products := protected.Group("/products")
+	products.Get("", product.Index)
+	products.Get("/create", product.ShowCreate)
+	products.Post("", product.Store)
+	products.Get("/{id}/edit", product.ShowEdit)
+	products.Post("/{id}", product.Update)
+	products.Post("/{id}/delete", product.Delete)
 }
